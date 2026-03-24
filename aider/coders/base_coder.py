@@ -26,6 +26,7 @@ from json.decoder import JSONDecodeError
 from pathlib import Path
 from typing import List
 
+import psutil
 from rich.console import Console
 
 from aider import __version__, models, prompts, urls, utils
@@ -398,6 +399,8 @@ class Coder:
         self.message_start_time = 0.0
         self.message_elapsed_time = 0.0
         self.total_time = 0.0
+        self.message_ram_mb = 0.0
+        self.session_peak_ram_mb = 0.0
 
         self.verbose = verbose
         self.abs_fnames = set()
@@ -2140,8 +2143,16 @@ class Coder:
         else:
             time_report = f"Time: {elapsed:.1f}s"
 
+        try:
+            ram_after = psutil.Process().memory_info().rss
+        except (psutil.Error, OSError):
+            ram_after = 0
+        self.message_ram_mb = ram_after / (1024 * 1024)
+        self.session_peak_ram_mb = max(self.session_peak_ram_mb, self.message_ram_mb)
+        ram_report = f"RAM: {self.message_ram_mb:.0f} MB (peak: {self.session_peak_ram_mb:.0f} MB)"
+
         if not self.main_model.info.get("input_cost_per_token"):
-            self.usage_report = tokens_report + " " + time_report
+            self.usage_report = tokens_report + " " + time_report + " " + ram_report
             return
 
         try:
@@ -2177,7 +2188,9 @@ class Coder:
         else:
             sep = " "
 
-        self.usage_report = tokens_report + sep + cost_report + " " + time_report
+        self.usage_report = (
+            tokens_report + sep + cost_report + " " + time_report + " " + ram_report
+        )
 
     def compute_costs_from_tokens(
         self, prompt_tokens, completion_tokens, cache_write_tokens, cache_hit_tokens
@@ -2240,6 +2253,7 @@ class Coder:
         self.message_tokens_received = 0
         self.message_tokens_reasoning = 0
         self.message_elapsed_time = 0.0
+        self.message_ram_mb = 0.0
 
     def get_multi_response_content_in_progress(self, final=False):
         cur = self.multi_response_content or ""
