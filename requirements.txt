@@ -181,10 +181,10 @@ jsonschema-specifications==2025.9.1
     # via
     #   -c requirements/common-constraints.txt
     #   jsonschema
-litellm==1.82.3
+litellm @ git+https://github.com/Ethara-Ai/litellm.git@main
     # via
-    #   -c requirements/common-constraints.txt
     #   -r requirements/requirements.in
+    #   pointed to Ethara-Ai fork (Vertex AI priority pricing fix + Express mode)
 markdown-it-py==4.0.0
     # via
     #   -c requirements/common-constraints.txt
